@@ -6,3 +6,4 @@ __pycache__/
 .DS_Store
 resume.pdf
 resume.txt
+.streamlit/secrets.toml
