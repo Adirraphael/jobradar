@@ -207,7 +207,7 @@ def load_jobs():
     client = get_bq_client()
     query = """
         SELECT
-            job_title, employer_name, job_city, job_state, job_country,
+            job_title, employer_name, employer_logo, job_city, job_state, job_country,
             job_is_remote, job_employment_type, job_apply_link,
             job_posted_at, match_score, recommendation,
             matched_skills, missing_skills, score_reasoning,
