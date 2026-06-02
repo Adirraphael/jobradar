@@ -3,12 +3,12 @@ import requests
 import hashlib
 from datetime import datetime, timezone
 from google.cloud import bigquery
-
+ 
 RAPIDAPI_KEY = os.environ["RAPIDAPI_KEY"]
 BQ_PROJECT = "focus-on-energy"
 BQ_DATASET = "job_radar"
 BQ_TABLE = "jobs"
-
+ 
 JOB_TITLES = [
     "Data Analyst",
     "Business Analyst",
@@ -16,15 +16,15 @@ JOB_TITLES = [
     "BI Developer",
     "Data Engineer",
 ]
-
+ 
 JSEARCH_URL = "https://jsearch.p.rapidapi.com/search"
 HEADERS = {
     "X-RapidAPI-Key": RAPIDAPI_KEY,
     "X-RapidAPI-Host": "jsearch.p.rapidapi.com",
 }
-
-
-def fetch_jobs_for_title(title: str, num_pages: int = 3) -> list[dict]:
+ 
+ 
+def fetch_jobs_for_title(title: str, num_pages: int = 1) -> list[dict]:
     jobs = []
     for page in range(1, num_pages + 1):
         params = {
@@ -39,13 +39,13 @@ def fetch_jobs_for_title(title: str, num_pages: int = 3) -> list[dict]:
         jobs.extend(data.get("data", []))
         print(f"  Fetched page {page} for '{title}' — {len(data.get('data', []))} jobs")
     return jobs
-
-
+ 
+ 
 def parse_job(job: dict, search_title: str) -> dict:
     job_id = job.get("job_id", "")
     # stable unique key: hash of job_id
     unique_key = hashlib.md5(job_id.encode()).hexdigest()
-
+ 
     return {
         "unique_key": unique_key,
         "job_id": job_id,
@@ -71,8 +71,8 @@ def parse_job(job: dict, search_title: str) -> dict:
         "score_reasoning": None,
         "scored_at": None,
     }
-
-
+ 
+ 
 def get_existing_keys(client: bigquery.Client) -> set:
     query = f"SELECT unique_key FROM `{BQ_PROJECT}.{BQ_DATASET}.{BQ_TABLE}`"
     try:
@@ -81,8 +81,8 @@ def get_existing_keys(client: bigquery.Client) -> set:
     except Exception:
         # table doesn't exist yet
         return set()
-
-
+ 
+ 
 def create_table_if_not_exists(client: bigquery.Client):
     schema = [
         bigquery.SchemaField("unique_key", "STRING"),
@@ -112,17 +112,17 @@ def create_table_if_not_exists(client: bigquery.Client):
     table = bigquery.Table(table_ref, schema=schema)
     client.create_table(table, exists_ok=True)
     print(f"Table {table_ref} ready.")
-
-
+ 
+ 
 def main():
     client = bigquery.Client(project=BQ_PROJECT)
     create_table_if_not_exists(client)
     existing_keys = get_existing_keys(client)
     print(f"Existing jobs in BigQuery: {len(existing_keys)}")
-
+ 
     all_new_jobs = []
     seen_keys = set()
-
+ 
     for title in JOB_TITLES:
         print(f"\nFetching: {title}")
         raw_jobs = fetch_jobs_for_title(title)
@@ -133,9 +133,9 @@ def main():
             if key not in existing_keys and key not in seen_keys:
                 all_new_jobs.append(parsed)
                 seen_keys.add(key)
-
+ 
     print(f"\nNew jobs to insert: {len(all_new_jobs)}")
-
+ 
     if all_new_jobs:
         table_ref = f"{BQ_PROJECT}.{BQ_DATASET}.{BQ_TABLE}"
         errors = client.insert_rows_json(table_ref, all_new_jobs)
@@ -145,7 +145,7 @@ def main():
             print(f"Successfully inserted {len(all_new_jobs)} jobs into BigQuery.")
     else:
         print("No new jobs to insert.")
-
-
+ 
+ 
 if __name__ == "__main__":
     main()
