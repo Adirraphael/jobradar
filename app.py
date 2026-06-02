@@ -318,8 +318,8 @@ if data_loaded and not df.empty:
     else:
         for _, job in filtered.iterrows():
             rec = (job["recommendation"] or "").lower()
-            is_remote = job.get("job_is_remote", False)
-            location = " · ".join(filter(None, [job.get("job_city", ""), job.get("job_state", ""), job.get("job_country", "")]))
+            is_remote = job["job_is_remote"]
+            location = " · ".join(filter(None, [str(job["job_city"]) if pd.notna(job["job_city"]) else "", str(job["job_state"]) if pd.notna(job["job_state"]) else "", str(job["job_country"]) if pd.notna(job["job_country"]) else ""]))
 
             work_badge = '<span class="badge badge-remote">Remote</span>' if is_remote else '<span class="badge badge-onsite">On-site</span>'
 
@@ -331,19 +331,19 @@ if data_loaded and not df.empty:
             else:
                 rec_badge = '<span class="badge badge-skip">Skip</span>'
 
-            matched = [s.strip() for s in (job.get("matched_skills") or "").split(",") if s.strip()]
-            missing = [s.strip() for s in (job.get("missing_skills") or "").split(",") if s.strip()]
+            matched = [s.strip() for s in (job["matched_skills"] or "").split(",") if s.strip()]
+            missing = [s.strip() for s in (job["missing_skills"] or "").split(",") if s.strip()]
 
             matched_html = "".join([f'<span class="skill-match">{s}</span>' for s in matched[:6]])
             missing_html = "".join([f'<span class="skill-missing">{s}</span>' for s in missing[:4]])
 
             score = int(job["match_score"]) if not pd.isna(job["match_score"]) else 0
-            reasoning = job.get("score_reasoning", "") or ""
-            apply_link = job.get("job_apply_link", "") or ""
+            reasoning = str(job["score_reasoning"]) if pd.notna(job["score_reasoning"]) else "" or ""
+            apply_link = str(job["job_apply_link"]) if pd.notna(job["job_apply_link"]) else "" or ""
             apply_html = f'<a href="{apply_link}" target="_blank" class="apply-link">Apply →</a>' if apply_link else ""
 
             posted = ""
-            if pd.notna(job.get("job_posted_at")):
+            if pd.notna(job["job_posted_at"]):
                 posted = job["job_posted_at"].strftime("%b %d")
 
             card_html = f"""
