@@ -32,6 +32,9 @@ jobs:
           GOOGLE_CLOUD_PROJECT: focus-on-energy
         run: python scripts/fetch_jobs.py
  
+      - name: Wait for BigQuery streaming buffer to clear
+        run: sleep 90
+ 
       - name: Score jobs with GPT-4o
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
