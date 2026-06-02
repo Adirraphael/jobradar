@@ -1,40 +1,37 @@
 name: Daily Job Fetch
- 
+
 on:
   schedule:
     - cron: "0 7 * * *"
   workflow_dispatch:
- 
+
 jobs:
   fetch-jobs:
     runs-on: ubuntu-latest
- 
+
     steps:
       - name: Checkout repo
         uses: actions/checkout@v4
- 
+
       - name: Set up Python
         uses: actions/setup-python@v5
         with:
           python-version: "3.11"
- 
+
       - name: Install dependencies
         run: pip install -r requirements.txt
- 
+
       - name: Authenticate to Google Cloud
         uses: google-github-actions/auth@v2
         with:
           credentials_json: ${{ secrets.GCP_SERVICE_ACCOUNT_KEY }}
- 
+
       - name: Fetch jobs from JSearch
         env:
           RAPIDAPI_KEY: ${{ secrets.RAPIDAPI_KEY }}
           GOOGLE_CLOUD_PROJECT: focus-on-energy
         run: python scripts/fetch_jobs.py
- 
-      - name: Wait for BigQuery streaming buffer to clear
-        run: sleep 90
- 
+
       - name: Score jobs with GPT-4o
         env:
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
