@@ -250,6 +250,9 @@ with st.sidebar:
     categories = ["All"] + sorted(df["search_title"].unique().tolist()) if data_loaded and not df.empty else ["All"]
     category = st.selectbox("", categories, label_visibility="collapsed", key="cat")
 
+    st.markdown('<div class="section-label" style="margin-top:16px">Posted within</div>', unsafe_allow_html=True)
+    days_filter = st.selectbox("", ["Any time", "Last 7 days", "Last 14 days", "Last 30 days"], label_visibility="collapsed", key="days")
+
     st.markdown("---")
     if st.button("🔄 Refresh data"):
         st.cache_data.clear()
@@ -280,6 +283,12 @@ if data_loaded and not df.empty:
 
     if category != "All":
         filtered = filtered[filtered["search_title"] == category]
+
+    if days_filter != "Any time":
+        days_map = {"Last 7 days": 7, "Last 14 days": 14, "Last 30 days": 30}
+        days = days_map[days_filter]
+        cutoff = pd.Timestamp.now(tz="UTC") - pd.Timedelta(days=days)
+        filtered = filtered[filtered["job_posted_at"] >= cutoff]
 
 # ── Main content ──────────────────────────────────────────────────────────────
 col_title, col_refresh = st.columns([4, 1])
@@ -346,15 +355,26 @@ if data_loaded and not df.empty:
             if pd.notna(job["job_posted_at"]):
                 posted = job["job_posted_at"].strftime("%b %d")
 
+            logo_url = str(job["employer_logo"]) if pd.notna(job["employer_logo"]) else ""
+            no_logo = '<div style="width:36px;height:36px;border-radius:8px;background:#1e2535;margin-right:14px;flex-shrink:0"></div>'
+            if logo_url:
+                onerror = "this.style.display='none'"
+                logo_html = f'<img src="{logo_url}" style="width:36px;height:36px;border-radius:8px;object-fit:contain;background:#1e2535;padding:4px;margin-right:14px;flex-shrink:0" onerror="{onerror}">'
+            else:
+                logo_html = no_logo
+
             card_html = f"""
             <div class="job-card {rec}">
                 <div style="display:flex; justify-content:space-between; align-items:flex-start">
-                    <div style="flex:1">
+                    <div style="display:flex; align-items:flex-start; flex:1">
+                        {logo_html}
+                        <div style="flex:1">
                         <div class="job-title">{job['job_title']}</div>
                         <div class="job-company">{job['employer_name']} {f'· {location}' if location else ''} {f'· {posted}' if posted else ''}</div>
                         <div class="job-meta">{work_badge} {rec_badge} {apply_html}</div>
                         <div class="skills-row">{matched_html}{missing_html}</div>
                         {f'<div class="reasoning">{reasoning}</div>' if reasoning else ''}
+                        </div>
                     </div>
                     <div style="text-align:right; padding-left:20px; min-width:70px">
                         <div class="score-pct">{score}%</div>
